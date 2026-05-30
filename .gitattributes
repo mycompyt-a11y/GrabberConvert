@@ -1,0 +1,7 @@
+# Normalize line endings for all files that Git considers text files.
+* text=auto eol=lf
+
+# Asset Library ZIP: ship only addons/grabber_convert (see Godot docs).
+/** export-ignore
+/addons !export-ignore
+/addons/** !export-ignore

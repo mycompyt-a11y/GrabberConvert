@@ -1,0 +1,23 @@
+# Godot 4+ (https://github.com/godotengine/godot/blob/master/.gitignore)
+.godot/
+/android/
+*.translation
+export.cfg
+export_credentials.cfg
+*.tmp
+
+# Imported / generated
+*.import
+.import/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Local test conversions and sample assets (do not publish)
+test_out*
+20260205_*
+*.heic
+*.heif
