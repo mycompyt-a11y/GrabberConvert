@@ -33,4 +33,4 @@ MIT License — see [LICENSE](LICENSE). Copyright © [Thumbnail Grabber](https:/
 - Web HEIC converter: [thumbnailgrabber.net/heic-converter](https://thumbnailgrabber.net/heic-converter)
 - Contact: [thumbnailgrabber.net/contact](https://thumbnailgrabber.net/contact)
 
-Full documentation: see the repository README at the project root.
+Source and full documentation: [github.com/mycompyt-a11y/GrabberConvert](https://github.com/mycompyt-a11y/GrabberConvert)

@@ -44,8 +44,8 @@ Sign in at [godotengine.org/asset-library](https://godotengine.org/asset-library
 | **Godot version** | 4.4 |
 | **Version** | 1.0.0 |
 | **License** | MIT |
-| **Repository URL** | `https://github.com/YOUR_USER/grabber-convert-godot` |
-| **Issues URL** | `https://github.com/YOUR_USER/grabber-convert-godot/issues` |
+| **Repository URL** | `https://github.com/mycompyt-a11y/GrabberConvert` |
+| **Issues URL** | `https://github.com/mycompyt-a11y/GrabberConvert/issues` |
 
 **Short description:**
 
@@ -56,7 +56,7 @@ Convert HEIC, HEIF, AVIF and other images to JPG, PNG, WebP, or BMP inside the G
 **Icon URL** (after push):
 
 ```
-https://raw.githubusercontent.com/YOUR_USER/grabber-convert-godot/main/screenshots/icon.png
+https://raw.githubusercontent.com/mycompyt-a11y/GrabberConvert/master/screenshots/icon.png
 ```
 
 Icon must be square, minimum 128x128, PNG or JPG.

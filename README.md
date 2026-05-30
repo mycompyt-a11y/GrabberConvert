@@ -2,6 +2,8 @@
 
 **GrabberConvert** is a Godot editor plugin by [Thumbnail Grabber](https://thumbnailgrabber.net/) that converts **HEIC**, **HEIF**, **AVIF**, and other image formats to **JPG**, **PNG**, **WebP**, or **BMP** inside the editor — ideal when iPhone photos and other non-importable files need to become Godot-friendly textures.
 
+**Repository:** [github.com/mycompyt-a11y/GrabberConvert](https://github.com/mycompyt-a11y/GrabberConvert)
+
 ![Godot 4.6](https://img.shields.io/badge/Godot-4.6+-478CBF?logo=godotengine&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
@@ -32,18 +34,22 @@ If you do not use Godot and only need browser-based conversion, see **Related to
 ### From Git
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/grabber-convert-godot.git
+git clone https://github.com/mycompyt-a11y/GrabberConvert.git
 ```
 
-Copy the addon into your project:
+Copy the addon into your Godot project:
 
 ```
 your_project/
   addons/
-    grabber_convert/    ← copy this folder only (no .gitignore inside it)
+    grabber_convert/    ← copy from GrabberConvert/addons/grabber_convert/
 ```
 
 Keep `.gitignore` at your **game project root** only, not inside `addons/grabber_convert/`.
+
+### From Godot Asset Library
+
+Search for **GrabberConvert** in **Editor → AssetLib** (after it is published), or install manually from the [GitHub repository](https://github.com/mycompyt-a11y/GrabberConvert).
 
 ### Enable the plugin
 
@@ -131,7 +137,7 @@ Publishing to the [Godot Asset Library](https://godotengine.org/asset-library/as
 
 ## Contributing
 
-Issues and pull requests are welcome. Please test on Godot 4.4+ before submitting.
+Issues and pull requests are welcome on [GitHub](https://github.com/mycompyt-a11y/GrabberConvert/issues). Please test on Godot 4.4+ before submitting.
 
 ## License
 
