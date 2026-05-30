@@ -19,10 +19,64 @@ const OUTPUT_FORMATS: Array[String] = ["jpg", "png", "webp", "bmp"]
 static var editor_interface: EditorInterface = null
 
 
-static func is_convertible(path: String) -> bool:
-	if path.is_empty() or not path.begins_with("res://"):
+static func collect_filesystem_selection(editor: EditorInterface) -> PackedStringArray:
+	if editor == null:
+		return PackedStringArray()
+	var result: PackedStringArray = []
+	var seen: Dictionary = {}
+
+	for raw in editor.get_selected_paths():
+		var path := normalize_res_path(str(raw))
+		if path.is_empty() or seen.has(path):
+			continue
+		if is_directory_path(path):
+			continue
+		seen[path] = true
+		result.append(path)
+
+	# Split FileSystem mode often leaves only the folder in get_selected_paths().
+	var current := normalize_res_path(str(editor.get_current_path()))
+	if not current.is_empty() and not is_directory_path(current) and not seen.has(current):
+		result.append(current)
+
+	return result
+
+
+static func normalize_res_path(path: String) -> String:
+	var p := path.strip_edges().replace("\\", "/")
+	if p.is_empty():
+		return ""
+	if p.begins_with("res://"):
+		return p
+	if p.begins_with("res:/"):
+		return "res://" + p.substr(5).lstrip("/")
+	if ":" in p and not p.begins_with("res://"):
+		var project_root := ProjectSettings.globalize_path("res://").replace("\\", "/")
+		if not project_root.ends_with("/"):
+			project_root += "/"
+		var normalized := p.replace("\\", "/")
+		if normalized.to_lower().begins_with(project_root.to_lower()):
+			return "res://" + normalized.substr(project_root.length())
+	return p
+
+
+static func is_directory_path(path: String) -> bool:
+	var p := normalize_res_path(path)
+	if p.is_empty():
+		return true
+	if p == "res://" or p.ends_with("/"):
+		return true
+	var global_path := ProjectSettings.globalize_path(p)
+	if global_path.is_empty():
 		return false
-	return _source_extension(path) in ALL_SOURCE_EXTENSIONS
+	return DirAccess.dir_exists_absolute(global_path)
+
+
+static func is_convertible(path: String) -> bool:
+	var p := normalize_res_path(path)
+	if p.is_empty() or not p.begins_with("res://"):
+		return false
+	return _source_extension(p) in ALL_SOURCE_EXTENSIONS
 
 
 static func get_available_targets(paths: PackedStringArray) -> Array[String]:
@@ -42,9 +96,10 @@ static func get_all_source_extensions() -> Array[String]:
 
 
 static func can_convert_to(path: String, target_fmt: String) -> bool:
-	if not is_convertible(path):
+	var p := normalize_res_path(path)
+	if not is_convertible(p):
 		return false
-	return _source_extension(path) != _normalize_format(target_fmt)
+	return _source_extension(p) != _normalize_format(target_fmt)
 
 
 static func output_path_for(source: String, target_fmt: String) -> String:
@@ -243,7 +298,10 @@ static func _needs_external(path: String) -> bool:
 
 
 static func _source_extension(path: String) -> String:
-	return _normalize_format(path.get_extension())
+	var ext := path.get_extension().to_lower().strip_edges()
+	if ext == "jpeg":
+		return "jpg"
+	return ext
 
 
 static func _normalize_format(raw: String) -> String:
@@ -265,33 +323,68 @@ static func _resolve_external_tool() -> String:
 	return ""
 
 
+static func _is_system32_convert(path: String) -> bool:
+	var normalized := path.replace("\\", "/").to_lower()
+	if not normalized.ends_with("/convert.exe"):
+		return false
+	return "/system32/" in normalized or "/syswow64/" in normalized
+
+
+static func _is_imagemagick_executable(path: String) -> bool:
+	if path.is_empty() or not FileAccess.file_exists(path):
+		return false
+	if _is_system32_convert(path):
+		return false
+	var output: Array = []
+	if OS.execute(path, ["-version"], output, true) != 0:
+		return false
+	if output.is_empty():
+		return false
+	return "imagemagick" in str(output[0]).to_lower()
+
+
+static func _is_unsafe_path_folder(folder: String) -> bool:
+	var normalized := folder.replace("\\", "/").to_lower().trim_suffix("/")
+	return (
+		normalized.ends_with("/system32")
+		or normalized.ends_with("/syswow64")
+		or normalized.ends_with("/windows")
+	)
+
+
 static func _find_executable(names: PackedStringArray) -> String:
 	if OS.has_environment("PATH"):
 		var path_var := OS.get_environment("PATH")
 		var sep := ";" if OS.get_name() == "Windows" else ":"
 		for folder in path_var.split(sep, false):
+			if _is_unsafe_path_folder(folder):
+				continue
 			for name in names:
 				var candidate := folder.path_join(name)
 				if FileAccess.file_exists(candidate):
 					return candidate
+	return ""
 
-	if OS.get_name() == "Windows":
-		var program_files := [
-			OS.get_environment("ProgramFiles"),
-			OS.get_environment("ProgramFiles(x86)"),
-			"C:/Program Files",
-			"C:/Program Files (x86)",
-		]
-		for root in program_files:
-			if root.is_empty():
-				continue
-			var magick_dir := _find_subdir_named(root, "ImageMagick")
-			if not magick_dir.is_empty():
-				for name in ["magick.exe", "convert.exe"]:
-					var exe := magick_dir.path_join(name)
-					if FileAccess.file_exists(exe):
-						return exe
 
+static func _find_imagemagick_install() -> String:
+	if OS.get_name() != "Windows":
+		return ""
+	var program_files := [
+		OS.get_environment("ProgramFiles"),
+		OS.get_environment("ProgramFiles(x86)"),
+		"C:/Program Files",
+		"C:/Program Files (x86)",
+	]
+	for root in program_files:
+		if root.is_empty():
+			continue
+		var magick_dir := _find_subdir_named(root, "ImageMagick")
+		if magick_dir.is_empty():
+			continue
+		for name in ["magick.exe", "convert.exe"]:
+			var exe := magick_dir.path_join(name)
+			if FileAccess.file_exists(exe) and _is_imagemagick_executable(exe):
+				return exe
 	return ""
 
 
@@ -329,9 +422,21 @@ static func save_settings_to_disk() -> void:
 
 static func find_magick_executable() -> String:
 	var override: String = str(_get_setting("magick_path", ""))
-	if not override.is_empty() and FileAccess.file_exists(override):
-		return override
-	return _find_executable(["magick", "magick.exe", "convert", "convert.exe"])
+	if not override.is_empty():
+		if _is_imagemagick_executable(override):
+			return override
+		push_warning(
+			"GrabberConvert: magick_path is not ImageMagick (check Dependencies tab). "
+			+ "On Windows, do not use C:\\Windows\\System32\\convert.exe."
+		)
+	var from_install := _find_imagemagick_install()
+	if not from_install.is_empty():
+		return from_install
+	# magick.exe only on PATH — never bare convert.exe (conflicts with Windows System32).
+	var from_path := _find_executable(["magick.exe", "magick"])
+	if not from_path.is_empty() and _is_imagemagick_executable(from_path):
+		return from_path
+	return ""
 
 
 static func find_ffmpeg_executable() -> String:
@@ -346,11 +451,22 @@ static func verify_executable(path: String) -> Dictionary:
 		return {"ok": false, "message": "Path is empty."}
 	if not FileAccess.file_exists(path):
 		return {"ok": false, "message": "File not found."}
+	if _is_system32_convert(path):
+		return {
+			"ok": false,
+			"message": "This is Windows convert (disk tool), not ImageMagick. Use magick.exe from ImageMagick install.",
+		}
+	if path.ends_with("convert.exe") or path.ends_with("convert"):
+		if not _is_imagemagick_executable(path):
+			return {
+				"ok": false,
+				"message": "Not ImageMagick. Set path to magick.exe (e.g. Program Files\\ImageMagick).",
+			}
 
 	var output: Array = []
-	var exit_code := OS.execute(path, ["-version"], output)
+	var exit_code := OS.execute(path, ["-version"], output, true)
 	if exit_code != 0:
-		exit_code = OS.execute(path, ["--version"], output)
+		exit_code = OS.execute(path, ["--version"], output, true)
 	if exit_code != 0:
 		return {"ok": false, "message": "Could not run (exit %d)." % exit_code}
 
@@ -363,8 +479,8 @@ static func verify_executable(path: String) -> Dictionary:
 
 static func auto_detect_dependencies() -> Dictionary:
 	return {
-		"magick": _find_executable(["magick", "magick.exe", "convert", "convert.exe"]),
-		"ffmpeg": _find_executable(["ffmpeg", "ffmpeg.exe"]),
+		"magick": find_magick_executable(),
+		"ffmpeg": find_ffmpeg_executable(),
 	}
 
 
@@ -429,9 +545,10 @@ static func _show_missing_tool_dialog() -> void:
 	var dialog := AcceptDialog.new()
 	dialog.title = "GrabberConvert"
 	dialog.dialog_text = (
-		"HEIC/HEIF/AVIF need ImageMagick or FFmpeg on your PATH.\n\n"
-		+ "Install ImageMagick: https://imagemagick.org/script/download.php\n"
-		+ "Open GrabberConvert in the bottom panel, Dependencies tab, to configure paths."
+		"HEIC/HEIF/AVIF need ImageMagick or FFmpeg.\n\n"
+		+ "On Windows, use magick.exe from ImageMagick — not C:\\Windows\\System32\\convert.exe (that is a disk tool).\n\n"
+		+ "Install: https://imagemagick.org/script/download.php\n"
+		+ "Open GrabberConvert → Dependencies tab → set ImageMagick path (e.g. E:/ImageMagick/magick.exe)."
 	)
 	editor_interface.get_base_control().add_child(dialog)
 	dialog.popup_centered()

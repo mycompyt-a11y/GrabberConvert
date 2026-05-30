@@ -121,14 +121,10 @@ func _on_convert_pressed() -> void:
 	var out_fmt: String = OUTPUT_FMTS[_out_format_option.selected]
 	Tool.set_setting("default_format", out_fmt)
 
-	var selection := _get_selected_paths(out_fmt)
+	var raw_selection := Tool.collect_filesystem_selection(editor)
+	var selection := _filter_for_conversion(raw_selection, out_fmt)
 	if selection.is_empty():
-		if editor.get_selected_paths().size() > 0:
-			_status.text = (
-				"Selected file(s) are already %s or not supported." % out_fmt.to_upper()
-			)
-		else:
-			_status.text = "Select one or more image files in the FileSystem dock."
+		_status.text = _conversion_blocked_message(raw_selection, out_fmt)
 		return
 
 	_status.text = "Converting..."
@@ -152,16 +148,41 @@ func _on_convert_pressed() -> void:
 			)
 
 
-func _get_selected_paths(out_fmt: String) -> PackedStringArray:
-	var paths: PackedStringArray = []
-	var editor: EditorInterface = Tool.editor_interface
-	if editor == null:
-		return paths
-
-	for path in editor.get_selected_paths():
-		var p: String = str(path)
+func _filter_for_conversion(paths: PackedStringArray, out_fmt: String) -> PackedStringArray:
+	var result: PackedStringArray = []
+	for path in paths:
+		var p := Tool.normalize_res_path(str(path))
 		if not Tool.is_convertible(p):
 			continue
 		if Tool.can_convert_to(p, out_fmt):
-			paths.append(p)
-	return paths
+			result.append(p)
+	return result
+
+
+func _conversion_blocked_message(raw_selection: PackedStringArray, out_fmt: String) -> String:
+	if raw_selection.is_empty():
+		var editor: EditorInterface = Tool.editor_interface
+		if editor != null and editor.get_selected_paths().size() > 0:
+			return (
+				"FileSystem shows a folder selected, not the image file. "
+				+ "Click the .heic file in the list (or turn off FileSystem split view), then convert."
+			)
+		return "Select one or more image files in the FileSystem dock."
+
+	var supported: PackedStringArray = []
+	for path in raw_selection:
+		if Tool.is_convertible(path):
+			supported.append(path)
+
+	if supported.is_empty():
+		return "Selected file(s) are not supported image types."
+
+	var already_target := true
+	for path in supported:
+		if Tool.can_convert_to(path, out_fmt):
+			already_target = false
+			break
+	if already_target:
+		return "Selected file(s) are already %s." % out_fmt.to_upper()
+
+	return "Could not convert the current selection."

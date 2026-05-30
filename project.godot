@@ -22,6 +22,11 @@ config/icon="res://icon.svg"
 
 enabled=PackedStringArray("res://addons/grabber_convert/plugin.cfg")
 
+[grabber_convert]
+
+magick_path="E:/ImageMagick/magick.exe"
+ffmpeg_path="E:\\ffmpeg\\bin/ffmpeg.exe"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
